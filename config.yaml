@@ -1,0 +1,21 @@
+limits:
+  max_file_size_mb: 10
+  max_pages: 500
+  timeout_per_file_sec: 120
+  timeout_strategy: per_file
+
+serialization:
+  markdown:
+    add_yaml_header: false
+  text:
+    table_delimiter: "\t"
+
+logging:
+  level: INFO
+  log_file: null
+  progress: true
+  fail_fast: false
+  workers: 4
+
+docling:
+  backend: auto
