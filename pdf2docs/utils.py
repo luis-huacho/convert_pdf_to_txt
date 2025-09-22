@@ -99,9 +99,12 @@ def sanitize_filename(filename: str) -> str:
 
 
 def normalize_text(text: str) -> str:
-    """Normalize text by fixing line endings and encoding."""
+    """Normalize text by fixing line endings, encoding, and cleaning artifacts."""
     # Normalize line endings to \n
     text = text.replace('\r\n', '\n').replace('\r', '\n')
+
+    # Clean image placeholders and other artifacts
+    text = clean_text_artifacts(text)
 
     # Remove excessive whitespace but preserve paragraph breaks
     lines = text.split('\n')
@@ -113,6 +116,37 @@ def normalize_text(text: str) -> str:
         normalized_lines.append(line)
 
     return '\n'.join(normalized_lines)
+
+
+def clean_text_artifacts(text: str) -> str:
+    """Remove unwanted artifacts from extracted text."""
+    import re
+
+    # Remove image placeholders
+    text = re.sub(r'<!--\s*image\s*-->', '', text, flags=re.IGNORECASE)
+
+    # Remove other common Docling artifacts
+    artifacts_to_remove = [
+        r'<!--\s*figure\s*-->',
+        r'<!--\s*chart\s*-->',
+        r'<!--\s*diagram\s*-->',
+        r'<!--\s*table\s*-->',  # Only if it's an empty table placeholder
+        r'\[image\]',
+        r'\[figure\]',
+        r'\[chart\]',
+        r'\[diagram\]',
+    ]
+
+    for pattern in artifacts_to_remove:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+
+    # Remove excessive blank lines (more than 2 consecutive)
+    text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
+
+    # Remove leading/trailing whitespace from the entire text
+    text = text.strip()
+
+    return text
 
 
 def validate_language_code(lang: str) -> bool:

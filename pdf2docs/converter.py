@@ -75,14 +75,15 @@ class PDFConverter:
             # Convert to target format
             if output_ext == 'md':
                 content = doc.export_to_markdown()
+                # For markdown, only normalize text (includes cleaning)
+                content = normalize_text(content)
             else:  # txt
                 # For text, we'll use the markdown export and then convert
                 content = doc.export_to_markdown()
                 # Convert markdown tables to tab-delimited if needed
                 content = self._convert_markdown_tables_to_tabs(content)
-
-            # Normalize text
-            content = normalize_text(content)
+                # Normalize and clean text
+                content = normalize_text(content)
             result_info['content'] = content
             result_info['char_count'] = len(content)
 
@@ -134,7 +135,7 @@ class PDFConverter:
         return '\n\n'.join(content_parts)
 
     def _convert_markdown_tables_to_tabs(self, markdown_content: str) -> str:
-        """Convert markdown tables to tab-delimited format."""
+        """Convert markdown tables to tab-delimited format and clean artifacts."""
         import re
 
         lines = markdown_content.split('\n')
@@ -148,8 +149,19 @@ class PDFConverter:
                 in_table = True
                 # Remove leading/trailing | and split by |
                 cells = [cell.strip() for cell in line.strip()[1:-1].split('|')]
-                # Join with tabs
-                converted_lines.append('\t'.join(cells))
+
+                # Clean artifacts from each cell
+                cleaned_cells = []
+                for cell in cells:
+                    # Remove image placeholders and other artifacts from cells
+                    cleaned_cell = re.sub(r'<!--\s*image\s*-->', '', cell, flags=re.IGNORECASE)
+                    cleaned_cell = re.sub(r'\[image\]', '', cleaned_cell, flags=re.IGNORECASE)
+                    cleaned_cell = cleaned_cell.strip()
+                    cleaned_cells.append(cleaned_cell)
+
+                # Only add non-empty rows
+                if any(cell for cell in cleaned_cells):
+                    converted_lines.append('\t'.join(cleaned_cells))
             elif in_table and line.strip().startswith('|') and '-' in line:
                 # This is a table separator line in markdown, skip it
                 continue
